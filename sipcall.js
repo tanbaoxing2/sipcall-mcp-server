@@ -15,7 +15,7 @@ class SipCallServer {
         this.server = new Server(
             {
                 name: 'sip-call-server',
-                version: '1.0.0',
+                version: '1.1.0',
             },
             {
                 capabilities: {
@@ -52,7 +52,7 @@ class SipCallServer {
                 tools: [
                     {
                         name: 'sip_configure',
-                        description: '配置SIP客户端连接参数，支持UDP协议',
+                        description: '配置SIP客户端连接参数，支持UDP协议，自动进行SIP注册',
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -88,7 +88,7 @@ class SipCallServer {
                     },
                     {
                         name: 'sip_call',
-                        description: '拨打SIP电话',
+                        description: '拨打SIP电话，支持RTP音频流和回声检测',
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -109,7 +109,7 @@ class SipCallServer {
                     },
                     {
                         name: 'sip_status',
-                        description: '获取当前SIP客户端状态',
+                        description: '获取当前SIP客户端状态，包括注册状态和网络信息',
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -123,7 +123,7 @@ class SipCallServer {
                     },
                     {
                         name: 'sip_statistics',
-                        description: '获取SIP客户端统计信息',
+                        description: '获取SIP客户端详细统计信息，包括通话成功率和RTP数据',
                         inputSchema: {
                             type: 'object',
                             properties: {}
@@ -131,7 +131,7 @@ class SipCallServer {
                     },
                     {
                         name: 'sip_reset',
-                        description: '重置SIP客户端',
+                        description: '重置SIP客户端，清除所有状态和统计信息',
                         inputSchema: {
                             type: 'object',
                             properties: {}
