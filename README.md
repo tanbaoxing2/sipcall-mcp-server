@@ -9,14 +9,13 @@
 - 🔐 **SIP 认证**: 支持用户名/密码认证和 SIP 注册
 - 🎵 **音频处理**: WebRTC 音频流处理
 - 🌐 **WebSocket 支持**: 使用 WSS 协议连接 SIP 服务器
-- 🇨🇳 **中文支持**: 完整的中文错误信息和日志
 
 ## 安装
 
 ### 从 GitHub 安装（推荐）
 
 ```bash
-git clone https://github.com/your-username/sipcall-mcp-server.git
+git clone https://github.com/tanbaoxing1/sipcall-mcp-server.git
 cd sipcall-mcp-server
 npm install
 ```
@@ -24,7 +23,7 @@ npm install
 ### 直接使用 npx（无需安装）
 
 ```bash
-npx github:your-username/sipcall-mcp-server
+npx github:tanbaoxing1/sipcall-mcp-server
 ```
 
 ### 本地开发安装
@@ -32,7 +31,7 @@ npx github:your-username/sipcall-mcp-server
 如果你想修改或贡献代码：
 
 ```bash
-git clone https://github.com/your-username/sipcall-mcp-server.git
+git clone https://github.com/tanbaoxing1/sipcall-mcp-server.git
 cd sipcall-mcp-server
 npm install
 npm start
@@ -45,7 +44,7 @@ npm start
 通过 npx 从 GitHub 启动（最常见的 AI Agent 使用方式）：
 
 ```bash
-npx github:your-username/sipcall-mcp-server
+npx github:tanbaoxing1/sipcall-mcp-server
 ```
 
 或者使用本地安装的版本：
@@ -83,7 +82,7 @@ npm run dev
   "mcpServers": {
     "sip-call-server": {
       "command": "npx",
-      "args": ["github:your-username/sipcall-mcp-server"],
+      "args": ["github:tanbaoxing1/sipcall-mcp-server"],
       "env": {
         "NODE_ENV": "production"
       }
@@ -151,7 +150,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
 const transport = new StdioClientTransport({
   command: 'npx',
-  args: ['github:your-username/sipcall-mcp-server']
+  args: ['github:tanbaoxing1/sipcall-mcp-server']
 });
 
 const client = new Client({
@@ -179,7 +178,7 @@ const transport = new StdioClientTransport({
 
 使用 GitHub npx 启动服务器：
 ```bash
-npx @modelcontextprotocol/inspector npx github:your-username/sipcall-mcp-server
+npx @modelcontextprotocol/inspector npx github:tanbaoxing1/sipcall-mcp-server
 ```
 
 使用本地克隆的仓库调试：
@@ -275,7 +274,7 @@ if (status.content[0].text.includes('incoming')) {
    // 使用 sip_configure 工具
    {
      \"sipServer\": \"your-sip-server.com\",
-     \"username\": \"your-username\",
+     \"username\": \"tanbaoxing1\",
      \"password\": \"your-password\",
      \"domain\": \"your-domain.com\"
    }
@@ -476,7 +475,7 @@ MIT
 ### 开发环境设置
 
 ```bash
-git clone https://github.com/your-username/sipcall-mcp-server.git
+git clone https://github.com/tanbaoxing1/sipcall-mcp-server.git
 cd sipcall-mcp-server
 npm install
 npm run dev
@@ -496,7 +495,7 @@ npx @modelcontextprotocol/inspector node sipcall.js
 
 1. **克隆仓库**
    ```bash
-   git clone https://github.com/your-username/sipcall-mcp-server.git
+   git clone https://github.com/tanbaoxing1/sipcall-mcp-server.git
    cd sipcall-mcp-server
    npm install
    ```
