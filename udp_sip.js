@@ -1269,7 +1269,7 @@ async function testUDPSIPClient() {
         if (registered) {
             // Test call
             console.log('\n📞 Testing SIP Call...');
-            const callResult = await client.makeCall("008613444447777", 5);
+            const callResult = await client.makeCall("62200051906022", 5);
             console.log(`Call result: ${callResult}`);
 
             // Show statistics
