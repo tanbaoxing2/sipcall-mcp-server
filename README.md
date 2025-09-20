@@ -1,21 +1,23 @@
 # SIP Call MCP Server
 
-一个基于 Model Context Protocol (MCP) 的 SIP 呼叫服务器，支持拨打和接听 SIP 电话。
+一个基于 Model Context Protocol (MCP) 的专业 SIP 呼叫服务器，支持 UDP 和 WebRTC 两种协议拨打 SIP 电话。
 
-## 功能特性
+## 🚀 功能特性
 
 - 🔌 **MCP 集成**: 完整的 Model Context Protocol 服务器实现
-- 📞 **双向通话**: 支持拨打和接听 SIP 电话
-- 🔐 **SIP 认证**: 支持用户名/密码认证和 SIP 注册
-- 🎵 **音频处理**: WebRTC 音频流处理
-- 🌐 **WebSocket 支持**: 使用 WSS 协议连接 SIP 服务器
+- 📞 **双协议支持**: UDP SIP（生产就绪）+ WebRTC SIP（待测试）
+- 🔐 **SIP 认证**: 支持摘要认证和 SIP 注册
+- 🎵 **RTP 音频**: 实时音频流处理和回声检测
+- 🌐 **NAT 穿透**: 智能网络检测和 NAT 环境适配
+- 📊 **状态监控**: 详细的通话统计和历史记录
+- 🛠️ **网络诊断**: 自动网络路径分析和问题诊断
 
-## 安装
+## 📦 安装
 
 ### 从 GitHub 安装（推荐）
 
 ```bash
-git clone https://github.com/tanbaoxing1/sipcall-mcp-server.git
+git clone https://github.com/tanbaoxing2/sipcall-mcp-server.git
 cd sipcall-mcp-server
 npm install
 ```
@@ -23,66 +25,42 @@ npm install
 ### 直接使用 npx（无需安装）
 
 ```bash
-npx github:tanbaoxing1/sipcall-mcp-server
+npx github:tanbaoxing2/sipcall-mcp-server
 ```
 
 ### 本地开发安装
 
-如果你想修改或贡献代码：
-
 ```bash
-git clone https://github.com/tanbaoxing1/sipcall-mcp-server.git
+git clone https://github.com/tanbaoxing2/sipcall-mcp-server.git
 cd sipcall-mcp-server
 npm install
 npm start
 ```
 
-## 使用方法
+## 🎯 快速开始
 
-### AI Agent 使用（推荐）
-
-通过 npx 从 GitHub 启动（最常见的 AI Agent 使用方式）：
+### 1. 启动服务器
 
 ```bash
-npx github:tanbaoxing1/sipcall-mcp-server
+# 使用 npx（推荐）
+npx github:tanbaoxing2/sipcall-mcp-server
+
+# 或本地启动
+node sipcall.js
 ```
 
-或者使用本地安装的版本：
+### 2. 配置 Claude Desktop
 
-```bash
-cd sipcall-mcp-server
-npm start
-```
+编辑配置文件：
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
-### 本地开发使用
-
-```bash
-# 启动服务器
-npm start
-
-# 调试模式
-npm run dev
-```
-
-## Agent 配置指南
-
-### 1. MCP 服务器配置
-
-在 Claude Desktop 或其他支持 MCP 的客户端中，需要在配置文件中添加此服务器：
-
-**Claude Desktop 配置文件位置:**
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-
-**配置示例:**
-
-使用 GitHub npx（推荐）：
 ```json
 {
   "mcpServers": {
     "sip-call-server": {
       "command": "npx",
-      "args": ["github:tanbaoxing1/sipcall-mcp-server"],
+      "args": ["github:tanbaoxing2/sipcall-mcp-server"],
       "env": {
         "NODE_ENV": "production"
       }
@@ -91,246 +69,238 @@ npm run dev
 }
 ```
 
-使用本地克隆的仓库：
-```json
-{
-  "mcpServers": {
-    "sip-call-server": {
-      "command": "node",
-      "args": ["sipcall.js"],
-      "cwd": "/path/to/sipcall-mcp-server",
-      "env": {
-        "NODE_ENV": "production"
-      }
-    }
-  }
-}
-```
+### 3. 开始使用
 
-Windows 本地路径示例：
-```json
-{
-  "mcpServers": {
-    "sip-call-server": {
-      "command": "node",
-      "args": ["sipcall.js"],
-      "cwd": "C:\\Users\\YourName\\sipcall-mcp-server",
-      "env": {
-        "NODE_ENV": "production"
-      }
-    }
-  }
-}
-```
+重启 Claude Desktop，现在你可以让 AI 助手进行 SIP 通话！
 
-macOS/Linux 本地路径示例：
-```json
-{
-  "mcpServers": {
-    "sip-call-server": {
-      "command": "node",
-      "args": ["sipcall.js"],
-      "cwd": "/Users/YourName/sipcall-mcp-server",
-      "env": {
-        "NODE_ENV": "production"
-      }
-    }
-  }
-}
-```
+## 🛠️ MCP 工具
 
-### 2. 在其他 MCP 客户端中使用
+该服务器提供以下 10 个专业 MCP 工具：
 
-如果你正在开发自己的 MCP 客户端，可以这样连接：
+### 配置管理
+- **`sip_configure`**: 配置 SIP 客户端连接参数，支持协议选择
+- **`sip_test_connection`**: 测试 SIP 服务器连接和网络诊断
+- **`sip_reset`**: 重置 SIP 客户端，清除所有状态
 
-使用 GitHub npx（推荐）：
-```javascript
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+### 通话管理
+- **`sip_call`**: 拨打 SIP 电话，支持持续时间控制
+- **`sip_answer`**: 接听来电
+- **`sip_hangup`**: 挂断当前通话
 
-const transport = new StdioClientTransport({
-  command: 'npx',
-  args: ['github:tanbaoxing1/sipcall-mcp-server']
-});
+### 状态监控
+- **`sip_status`**: 获取当前 SIP 客户端和通话状态
+- **`sip_call_history`**: 获取通话历史记录
+- **`sip_statistics`**: 获取详细的统计信息
 
-const client = new Client({
-  name: "sip-client",
-  version: "1.0.0"
-}, {
-  capabilities: {}
-});
+### 高级功能
+- **`sip_switch_protocol`**: 在 UDP 和 WebRTC 协议之间切换
 
-await client.connect(transport);
-```
+## 📋 使用示例
 
-使用本地克隆的仓库（开发用）：
-```javascript
-const transport = new StdioClientTransport({
-  command: 'node',
-  args: ['./sipcall.js'],
-  cwd: '/path/to/sipcall-mcp-server'
-});
-```
-
-### 3. MCP Inspector 调试
-
-使用 MCP Inspector 来测试和调试服务器：
-
-使用 GitHub npx 启动服务器：
-```bash
-npx @modelcontextprotocol/inspector npx github:tanbaoxing1/sipcall-mcp-server
-```
-
-使用本地克隆的仓库调试：
-```bash
-cd sipcall-mcp-server
-npx @modelcontextprotocol/inspector node sipcall.js
-```
-
-## Agent 使用流程
-
-### 完整的通话流程示例
+### 基础通话流程
 
 ```javascript
-// 1. 配置 SIP 连接
+// 1. 配置 SIP 连接（UDP 协议）
 await client.callTool('sip_configure', {
-  sipServer: 'sip.example.com',
-  username: 'your_username',
+  sipServer: 'rtcdev1.sinupaas.com',
+  username: '62200051906030',
   password: 'your_password',
-  domain: 'example.com'
+  domain: 'rtcdev1.sinupaas.com',
+  protocol: 'udp',
+  port: 10060
 });
 
-// 2. 检查连接状态
-const status = await client.callTool('sip_status', {});
-console.log('SIP 状态:', status);
+// 2. 测试连接
+const testResult = await client.callTool('sip_test_connection', {});
+console.log('连接测试:', testResult);
 
 // 3. 拨打电话
 await client.callTool('sip_call', {
-  phoneNumber: '1234567890'
+  phoneNumber: '62200051906022',
+  duration: 30,
+  autoHangup: true
 });
 
-// 4. 在通话中... (Agent 可以进行语音交互)
+// 4. 查看通话状态
+const status = await client.callTool('sip_status', { detailed: true });
+console.log('通话状态:', status);
 
-// 5. 挂断电话
-await client.callTool('sip_hangup', {});
+// 5. 查看统计信息
+const stats = await client.callTool('sip_statistics', {});
+console.log('统计信息:', stats);
 ```
 
-### 接听来电流程
+### 协议切换示例
 
 ```javascript
-// 1. 服务器自动检测到来电时，Agent 会收到通知
+// 切换到 WebRTC 协议（开发中）
+await client.callTool('sip_switch_protocol', {
+  protocol: 'webrtc'
+});
 
-// 2. 检查来电状态
-const status = await client.callTool('sip_status', {});
-if (status.content[0].text.includes('incoming')) {
-  // 3. 选择接听
-  await client.callTool('sip_answer', {});
+// 切换回 UDP 协议
+await client.callTool('sip_switch_protocol', {
+  protocol: 'udp'
+});
+```
 
-  // 4. 开始通话...
+### 通话历史查询
 
-  // 5. 结束通话
-  await client.callTool('sip_hangup', {});
+```javascript
+// 获取最近 10 次通话记录
+const history = await client.callTool('sip_call_history', {
+  limit: 10
+});
+console.log('通话历史:', history);
+```
+
+## 🔧 配置参数
+
+### SIP 配置参数
+
+| 参数 | 类型 | 必需 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `sipServer` | string | ✅ | - | SIP 服务器地址 |
+| `username` | string | ✅ | - | SIP 用户名 |
+| `password` | string | ✅ | - | SIP 密码 |
+| `domain` | string | ✅ | - | SIP 域名 |
+| `protocol` | string | ❌ | 'udp' | 传输协议（udp/webrtc/auto） |
+| `port` | number | ❌ | 25060 | SIP 服务器端口 |
+| `localPort` | number | ❌ | 0 | 本地绑定端口（0=自动分配） |
+
+### 通话参数
+
+| 参数 | 类型 | 必需 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `phoneNumber` | string | ✅ | - | 目标电话号码 |
+| `duration` | number | ❌ | 30 | 通话持续时间（秒，1-3600） |
+| `autoHangup` | boolean | ❌ | true | 是否自动挂断 |
+| `recordCall` | boolean | ❌ | false | 是否录音（预留功能） |
+
+## 🌐 协议支持
+
+### UDP SIP（生产就绪）✅
+- **完整 SIP 协议栈**: 基于 RFC 3261 标准
+- **事务管理**: 自动重传、超时处理、状态管理
+- **摘要认证**: MD5 认证自动处理
+- **RTP 处理**: 实时音频包生成和回声检测
+- **NAT 支持**: 智能网络检测和穿透
+- **网络诊断**: 自动路径分析和问题排查
+
+### WebRTC SIP（待测试）🚧
+- **浏览器兼容**: 支持现代浏览器 WebRTC
+- **WSS 传输**: 安全的 WebSocket 连接
+- **媒体协商**: 自动 SDP 协商
+- **ICE 候选**: 自动 NAT 穿透
+
+## 📊 监控和统计
+
+### 实时状态监控
+```javascript
+{
+  "timestamp": "2025-09-20T08:25:00.000Z",
+  "configured": true,
+  "registered": true,
+  "protocol": "udp",
+  "hasActiveCall": false,
+  "server": "rtcdev1.sinupaas.com",
+  "username": "62200051906030"
 }
 ```
 
-## MCP 工具
+### 详细统计信息
+```javascript
+{
+  "totalCalls": 10,
+  "successfulCalls": 8,
+  "failedCalls": 2,
+  "successRate": "80.00%",
+  "totalDuration": 240,
+  "averageDuration": "30.00s",
+  "lastCallTime": "2025-09-20T08:15:00.000Z",
+  "registrationAttempts": 5,
+  "registrationSuccesses": 5,
+  "udpClient": {
+    "registrationSuccesses": 5,
+    "registrationFailures": 0,
+    "callSuccesses": 8,
+    "callFailures": 2,
+    "rtpPacketsSent": 12000,
+    "rtpPacketsReceived": 11800
+  }
+}
+```
 
-该服务器提供以下 MCP 工具：
+### 通话历史记录
+```javascript
+{
+  "total": 5,
+  "limit": 10,
+  "calls": [
+    {
+      "id": 1726825500000,
+      "phoneNumber": "62200051906022",
+      "direction": "outbound",
+      "startTime": "2025-09-20T08:25:00.000Z",
+      "endTime": "2025-09-20T08:25:30.000Z",
+      "duration": 30,
+      "status": "completed",
+      "protocol": "udp"
+    }
+  ]
+}
+```
 
-### 1. sip_configure
-配置 SIP 客户端连接参数
+## 🔍 网络诊断
 
-**参数:**
-- `sipServer`: SIP 服务器地址
-- `username`: 用户名
-- `password`: 密码
-- `domain`: SIP 域名
+### 自动网络检测
+- **本地 IP 检测**: 自动识别网络接口
+- **NAT 类型检测**: 识别网络环境类型
+- **防火墙检测**: 检查端口可达性
+- **延迟测试**: 测量网络延迟
 
-### 2. sip_call
-拨打电话
+### 故障排除工具
+```javascript
+// 使用连接测试工具
+const testResult = await client.callTool('sip_test_connection', {});
 
-**参数:**
-- `phoneNumber`: 目标电话号码
+// 检查测试结果
+if (!testResult.tests.udp.success) {
+  console.log('UDP 连接失败:', testResult.tests.udp.error);
+  // 自动提供解决建议
+}
+```
 
-### 3. sip_answer
-接听来电
-
-**参数:** 无
-
-### 4. sip_hangup
-挂断电话
-
-**参数:** 无
-
-### 5. sip_status
-获取当前状态
-
-**参数:** 无
-
-## 使用示例
-
-1. **配置 SIP 客户端**
-   ```javascript
-   // 使用 sip_configure 工具
-   {
-     \"sipServer\": \"your-sip-server.com\",
-     \"username\": \"tanbaoxing1\",
-     \"password\": \"your-password\",
-     \"domain\": \"your-domain.com\"
-   }
-   ```
-
-2. **拨打电话**
-   ```javascript
-   // 使用 sip_call 工具
-   {
-     \"phoneNumber\": \"1234567890\"
-   }
-   ```
-
-3. **接听来电**
-   ```javascript
-   // 使用 sip_answer 工具
-   {}
-   ```
-
-4. **挂断电话**
-   ```javascript
-   // 使用 sip_hangup 工具
-   {}
-   ```
-
-5. **查看状态**
-   ```javascript
-   // 使用 sip_status 工具
-   {}
-   ```
-
-## Agent 应用场景
+## 🎯 应用场景
 
 ### 1. AI 客服系统
 ```javascript
-// Agent 主动回访客户
-await client.callTool('sip_configure', { /* 配置信息 */ });
-await client.callTool('sip_call', { phoneNumber: customerPhone });
-// Agent: "您好，我是AI客服小助手，想了解您对我们服务的满意度..."
+// AI 主动回访客户
+await configureSIP();
+await client.callTool('sip_call', { 
+  phoneNumber: customerPhone,
+  duration: 300 
+});
+// AI: "您好，我是 AI 客服，想了解您对我们服务的满意度..."
 ```
 
 ### 2. 语音助手服务
 ```javascript
-// 用户呼入，Agent 提供服务
-// 自动检测来电并接听
+// 用户呼入，AI 提供服务
 await client.callTool('sip_answer', {});
-// Agent: "您好，我是AI语音助手，请问需要什么帮助？"
+// AI: "您好，我是 AI 语音助手，请问需要什么帮助？"
 ```
 
 ### 3. 预约提醒系统
 ```javascript
-// Agent 拨打用户确认预约
+// AI 批量拨打确认预约
 const appointments = getUpcomingAppointments();
 for (const appointment of appointments) {
-  await client.callTool('sip_call', { phoneNumber: appointment.phone });
-  // Agent: "您好，提醒您明天上午10点有预约，请问是否需要调整时间？"
+  await client.callTool('sip_call', { 
+    phoneNumber: appointment.phone,
+    duration: 60
+  });
+  // AI: "提醒您明天上午 10 点有预约，请问是否需要调整？"
 }
 ```
 
@@ -339,198 +309,199 @@ for (const appointment of appointments) {
 // 批量紧急通知
 const emergencyContacts = getEmergencyContacts();
 for (const contact of emergencyContacts) {
-  await client.callTool('sip_call', { phoneNumber: contact.phone });
-  // Agent: "紧急通知：由于系统维护，服务将在1小时后暂停..."
+  await client.callTool('sip_call', { 
+    phoneNumber: contact.phone,
+    duration: 120
+  });
+  // AI: "紧急通知：由于系统维护，服务将在 1 小时后暂停..."
 }
 ```
 
-## 高级 Agent 使用模式
+## 🛡️ 安全和最佳实践
 
-### 1. 智能呼叫路由
-```javascript
-class SmartCallRouter {
-  async handleIncomingCall() {
-    const status = await client.callTool('sip_status', {});
-    const callerInfo = this.extractCallerInfo(status);
+### 安全配置
+- ✅ 不要在代码中硬编码 SIP 凭据
+- ✅ 使用环境变量存储敏感信息
+- ✅ 定期更新依赖包
+- ✅ 监控异常连接尝试
+- ✅ 使用强密码和安全的 SIP 服务器
 
-    if (this.isVIPCustomer(callerInfo)) {
-      await client.callTool('sip_answer', {});
-      return this.provideVIPService();
-    } else {
-      await client.callTool('sip_answer', {});
-      return this.provideStandardService();
-    }
-  }
-}
-```
+### 网络要求
+- **SIP 信令**: UDP 端口（默认 25060，可配置）
+- **RTP 媒体**: UDP 动态端口（自动分配）
+- **防火墙**: 允许出站 UDP 连接
+- **NAT 环境**: 自动适配，支持对称 NAT
 
-### 2. 多语言支持
-```javascript
-class MultiLanguageAgent {
-  async handleCall(preferredLanguage = 'zh-CN') {
-    await client.callTool('sip_answer', {});
+### 性能优化
+- **连接复用**: 自动管理 SIP 连接
+- **资源清理**: 自动释放网络资源
+- **错误恢复**: 智能重连和故障恢复
+- **统计监控**: 实时性能指标
 
-    const greeting = this.getGreeting(preferredLanguage);
-    // 使用对应语言进行对话
-  }
-}
-```
-
-### 3. 通话录音和分析
-```javascript
-class CallAnalytics {
-  async startCall(phoneNumber) {
-    const callStart = Date.now();
-    await client.callTool('sip_call', { phoneNumber });
-
-    // 记录通话开始时间
-    this.logCallStart(phoneNumber, callStart);
-
-    // 在通话结束后进行分析
-    await this.analyzeCallQuality();
-  }
-}
-```
-
-## 故障排除
+## 🔧 故障排除
 
 ### 常见问题
 
-1. **连接失败**
-   ```bash
-   # 检查 SIP 服务器连接
-   ping your-sip-server.com
-
-   # 检查端口是否开放
-   telnet your-sip-server.com 5061
-   ```
-
-2. **音频问题**
-   - 确保浏览器支持 WebRTC
-   - 检查麦克风和扬声器权限
-   - 验证防火墙设置
-
-3. **MCP 连接问题**
-   ```bash
-   # 使用 MCP Inspector 调试
-   npx @modelcontextprotocol/inspector node sipcall.js
-   ```
-
-4. **SIP 注册失败**
-   - 验证用户名和密码
-   - 检查 SIP 域名配置
-   - 确认 SIP 服务器支持 WSS
-
-### 调试模式
-
-启用详细日志：
+#### 1. SIP 注册失败
 ```bash
-DEBUG=sip* npm start
+# 检查网络连接
+ping rtcdev1.sinupaas.com
+
+# 检查端口可达性
+telnet rtcdev1.sinupaas.com 10060
+
+# 使用连接测试工具
+await client.callTool('sip_test_connection', {});
 ```
 
-### 性能监控
+**可能原因:**
+- 用户名或密码错误
+- SIP 服务器地址或端口错误
+- 网络防火墙阻止连接
+- SIP 服务器不支持当前认证方式
 
+#### 2. 通话建立失败
 ```javascript
-class PerformanceMonitor {
-  monitorCallQuality() {
-    // 监控网络延迟
-    // 监控音频质量
-    // 监控连接稳定性
-  }
+// 检查注册状态
+const status = await client.callTool('sip_status', { detailed: true });
+if (!status.registered) {
+  console.log('SIP 未注册，请先配置并注册');
 }
 ```
 
-## 技术栈
+**可能原因:**
+- SIP 客户端未注册
+- 目标号码格式错误
+- 网络连接不稳定
+- SIP 服务器拒绝呼叫
 
-- **Node.js**: 运行时环境 (>=18.0.0)
-- **SIP.js**: SIP 协议实现
-- **@modelcontextprotocol/sdk**: MCP 服务器框架
-- **WebRTC**: 音频流处理
-- **zod**: 数据验证
-
-## 系统要求
-
-- Node.js >= 18.0.0
-- 支持 WebRTC 的环境
-- SIP 服务器访问权限
-- 网络连接稳定
-
-## 安全注意事项
-
-- 不要在代码中硬编码 SIP 凭据
-- 使用环境变量存储敏感信息
-- 定期更新依赖包
-- 监控异常连接尝试
-
-## 许可证
-
-MIT
-
----
-
-## 贡献指南
-
-欢迎提交 Issues 和 Pull Requests 来改进这个项目。
-
-### 开发环境设置
-
-```bash
-git clone https://github.com/tanbaoxing1/sipcall-mcp-server.git
-cd sipcall-mcp-server
-npm install
-npm run dev
+#### 3. RTP 音频问题
+```javascript
+// 查看 RTP 统计
+const stats = await client.callTool('sip_statistics', {});
+console.log('RTP 包发送:', stats.udpClient.rtpPacketsSent);
+console.log('RTP 包接收:', stats.udpClient.rtpPacketsReceived);
 ```
 
-### 测试
+**可能原因:**
+- NAT 配置问题
+- 防火墙阻止 RTP 端口
+- 网络延迟过高
+- 音频编解码器不匹配
+
+### 调试模式
 
 ```bash
-# 运行测试
+# 启用详细日志
+DEBUG=sip* node sipcall.js
+
+# 使用 MCP Inspector 调试
+npx @modelcontextprotocol/inspector node sipcall.js
+```
+
+## 📋 系统要求
+
+- **Node.js**: >= 18.0.0
+- **操作系统**: Windows, macOS, Linux
+- **网络**: 稳定的互联网连接
+- **防火墙**: 允许 UDP 出站连接
+- **SIP 服务器**: 支持 UDP SIP 协议
+
+## 🏗️ 技术架构
+
+### 协议栈层次
+```
+┌─────────────────────────────────────┐
+│           MCP Server Layer          │
+├─────────────────────────────────────┤
+│         SIP Application Layer       │
+├─────────────────────────────────────┤
+│       SIP Transaction Layer         │
+├─────────────────────────────────────┤
+│         UDP Transport Layer         │
+├─────────────────────────────────────┤
+│           RTP Media Layer           │
+└─────────────────────────────────────┘
+```
+
+### 核心组件
+- **EnhancedUDPSIPClient**: 核心 SIP 客户端
+- **TransactionManager**: SIP 事务管理器
+- **RTPHandler**: RTP 媒体处理器
+- **StatisticsCollector**: 统计信息收集器
+- **NetworkDiagnostics**: 网络诊断工具
+
+## 🧪 测试
+
+### 运行测试
+```bash
+# 基础功能测试
 npm test
+
+# 真实 SIP 账号测试
+node test_real_sip_account.js
 
 # 使用 MCP Inspector 测试
 npx @modelcontextprotocol/inspector node sipcall.js
 ```
 
-## 快速开始
+### 测试覆盖
+- ✅ SIP 注册和认证
+- ✅ 通话建立和挂断
+- ✅ RTP 媒体流处理
+- ✅ NAT 穿透测试
+- ✅ 错误处理和恢复
+- ✅ 统计信息收集
 
-1. **克隆仓库**
-   ```bash
-   git clone https://github.com/tanbaoxing1/sipcall-mcp-server.git
-   cd sipcall-mcp-server
-   npm install
-   ```
+## 📚 技术栈
 
-2. **配置 Claude Desktop**
+- **Node.js**: 运行时环境
+- **@modelcontextprotocol/sdk**: MCP 服务器框架
+- **dgram**: UDP 网络通信
+- **crypto**: 摘要认证
+- **uuid**: 唯一标识符生成
+- **zod**: 数据验证
 
-   编辑配置文件并添加：
-   ```json
-   {
-     "mcpServers": {
-       "sip-call-server": {
-         "command": "node",
-         "args": ["sipcall.js"],
-         "cwd": "/path/to/sipcall-mcp-server"
-       }
-     }
-   }
-   ```
+## 🤝 贡献指南
 
-3. **开始使用**
+欢迎提交 Issues 和 Pull Requests！
 
-   重启 Claude Desktop，现在你可以让 AI 助手：
-   - 配置 SIP 连接
-   - 拨打电话
-   - 接听来电
-   - 管理通话状态
-
-## 项目结构
-
+### 开发环境设置
+```bash
+git clone https://github.com/tanbaoxing2/sipcall-mcp-server.git
+cd sipcall-mcp-server
+npm install
+npm run dev
 ```
-sipcall-mcp-server/
-├── sipcall.js          # 主服务器文件
-├── bin.js              # 可执行文件入口
-├── package.json        # 项目配置
-├── .gitignore         # Git 忽略文件
-├── README.md          # 项目文档
-└── CLAUDE.md          # Claude Code 指南
-```
+
+### 提交规范
+- 🐛 **fix**: 修复 bug
+- ✨ **feat**: 新功能
+- 📚 **docs**: 文档更新
+- 🎨 **style**: 代码格式
+- ♻️ **refactor**: 代码重构
+- ⚡ **perf**: 性能优化
+- ✅ **test**: 测试相关
+
+## 📄 许可证
+
+MIT License - 详见 [LICENSE](LICENSE) 文件
+
+## 🔗 相关链接
+
+- **GitHub**: https://github.com/tanbaoxing2/sipcall-mcp-server
+- **Issues**: https://github.com/tanbaoxing2/sipcall-mcp-server/issues
+- **MCP 官方文档**: https://modelcontextprotocol.io/
+- **SIP 协议 RFC 3261**: https://tools.ietf.org/html/rfc3261
+
+---
+
+## 📞 联系我们
+
+如有问题或建议，请通过以下方式联系：
+
+- 📧 **Email**: 14774913528@139.com
+- 🐛 **Issues**: [GitHub Issues](https://github.com/tanbaoxing2/sipcall-mcp-server/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/tanbaoxing2/sipcall-mcp-server/discussions)
+
+**让 AI 助手拥有打电话的能力！** 🚀📞

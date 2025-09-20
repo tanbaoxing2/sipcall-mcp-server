@@ -24,7 +24,11 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "dgram": "^1.0.1",
+    "sip": "^0.0.6",
     "sip.js": "^0.21.2",
+    "uuid": "^13.0.0",
+    "ws": "^8.18.3",
     "zod": "^3.22.0"
   },
   "devDependencies": {
