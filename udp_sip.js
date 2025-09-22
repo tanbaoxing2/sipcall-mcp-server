@@ -1,6 +1,5 @@
 /**
  * Enhanced UDP SIP Call Client
- * Based on sip_monitor_udp.js with production-ready features
  * Features: SIP registration, call handling, RTP streaming, transaction management
  */
 
@@ -33,6 +32,7 @@ class UDPSIPClient {
         this.callAttempts = 0;
         this.maxCallAttempts = 3;
         this.currentCall = null;
+        this.incomingCall = null;
 
         // RTP state
         this.rtpSocket = null;
@@ -1107,8 +1107,8 @@ class UDPSIPClient {
             let cseq = '';
             let fromHeader = '';
             let toHeader = '';
-            let viaHeader = '';
             let callIdHeader = '';
+            const viaHeaders = [];
 
             for (const line of lines) {
                 if (line.startsWith('CSeq:')) {
@@ -1118,15 +1118,22 @@ class UDPSIPClient {
                 } else if (line.startsWith('To:')) {
                     toHeader = line;
                 } else if (line.startsWith('Via:')) {
-                    viaHeader = line;
+                    viaHeaders.push(line);
                 } else if (line.startsWith('Call-ID:')) {
                     callIdHeader = line;
                 }
             }
 
-            const byeOK = [
-                `SIP/2.0 200 OK`,
-                viaHeader,
+            // 构建BYE 200 OK响应
+            const responseLines = [
+                `SIP/2.0 200 OK`
+            ];
+
+            // 添加所有Via头（必须按原顺序）
+            viaHeaders.forEach(via => responseLines.push(via));
+
+            // 添加其他必要头
+            responseLines.push(
                 fromHeader,
                 toHeader,
                 callIdHeader,
@@ -1135,7 +1142,12 @@ class UDPSIPClient {
                 `Content-Length: 0`,
                 ``,
                 ``
-            ].join('\r\n');
+            );
+
+            const byeOK = responseLines.join('\r\n');
+
+            console.log('发送BYE 200 OK响应:');
+            console.log(byeOK);
 
             const msgBuffer = Buffer.from(byeOK);
             this.socket.send(msgBuffer, rinfo.port, rinfo.address, (err) => {
@@ -1157,11 +1169,221 @@ class UDPSIPClient {
 
             if (message.startsWith('INVITE sip:')) {
                 console.log(`Incoming call from ${rinfo.address}:${rinfo.port}`);
-                this.rejectIncomingCall(message, rinfo);
+                this.handleIncomingCall(message, rinfo);
+            } else if (message.startsWith('ACK sip:')) {
+                console.log(`Received ACK from ${rinfo.address}:${rinfo.port}`);
+                this.handleACK(message, rinfo);
+            } else if (message.startsWith('BYE sip:')) {
+                console.log(`Received BYE from ${rinfo.address}:${rinfo.port}`);
+                this.handleBYE(message, rinfo);
             }
         } catch (error) {
             console.error(`Error handling SIP message: ${error.message}`);
         }
+    }
+
+    handleIncomingCall(inviteMessage, rinfo) {
+        try {
+            // 解析来电信息
+            const callInfo = this.parseInviteMessage(inviteMessage, rinfo);
+
+            if (this.currentCall) {
+                console.log('已有通话进行中，拒绝来电');
+                this.rejectIncomingCall(inviteMessage, rinfo);
+                return;
+            }
+
+            // 如果已有来电等待处理，先拒绝旧的来电
+            if (this.incomingCall) {
+                console.log('已有来电等待处理，拒绝新来电');
+                this.rejectIncomingCall(inviteMessage, rinfo);
+                return;
+            }
+
+            // 存储来电信息
+            this.incomingCall = callInfo;
+            console.log(`来电等待应答，来自: ${callInfo.fromUser}`);
+
+            // 这里可以触发事件或回调通知应用层有来电
+
+        } catch (error) {
+            console.error(`处理来电失败: ${error.message}`);
+            this.rejectIncomingCall(inviteMessage, rinfo);
+        }
+    }
+
+    parseInviteMessage(inviteMessage, rinfo) {
+        const lines = inviteMessage.split('\r\n');
+        const callInfo = {
+            message: inviteMessage,
+            rinfo: rinfo,
+            timestamp: Date.now()
+        };
+
+        for (const line of lines) {
+            if (line.startsWith('CSeq:')) {
+                callInfo.cseq = line;
+            } else if (line.startsWith('From:')) {
+                callInfo.fromHeader = line;
+                // 提取用户名
+                const match = line.match(/sip:([^@]+)/);
+                if (match) {
+                    callInfo.fromUser = match[1];
+                }
+            } else if (line.startsWith('To:')) {
+                callInfo.toHeader = line;
+            } else if (line.startsWith('Via:')) {
+                callInfo.viaHeader = line;
+            } else if (line.startsWith('Call-ID:')) {
+                callInfo.callIdHeader = line;
+            } else if (line.startsWith('Contact:')) {
+                callInfo.contactHeader = line;
+            } else if (line.startsWith('m=audio')) {
+                // 解析RTP端口
+                const portMatch = line.match(/m=audio (\d+)/);
+                if (portMatch) {
+                    callInfo.remoteRtpPort = parseInt(portMatch[1]);
+                }
+            } else if (line.startsWith('c=IN IP4')) {
+                // 解析RTP地址
+                const ipMatch = line.match(/c=IN IP4 (.+)/);
+                if (ipMatch) {
+                    callInfo.remoteRtpAddress = ipMatch[1];
+                }
+            }
+        }
+
+        return callInfo;
+    }
+
+    async answerCall() {
+        if (!this.incomingCall) {
+            throw new Error('没有来电需要应答');
+        }
+
+        try {
+            const callInfo = this.incomingCall;
+
+            // 设置当前通话信息
+            this.currentCall = {
+                ...callInfo,
+                answered: true,
+                startTime: Date.now()
+            };
+
+            // 设置RTP参数
+            if (callInfo.remoteRtpAddress && callInfo.remoteRtpPort) {
+                this.remoteRtpAddress = callInfo.remoteRtpAddress;
+                this.remoteRtpPort = callInfo.remoteRtpPort;
+            }
+
+            // 发送200 OK响应
+            const okResponse = this.createOKResponse(callInfo);
+
+            await new Promise((resolve, reject) => {
+                const msgBuffer = Buffer.from(okResponse);
+                this.socket.send(msgBuffer, callInfo.rinfo.port, callInfo.rinfo.address, (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        console.log('已发送200 OK，通话已接听');
+                        resolve();
+                    }
+                });
+            });
+
+            // 开始RTP流
+            this.startRTPStream();
+
+            // 清除来电状态
+            this.incomingCall = null;
+
+            return true;
+
+        } catch (error) {
+            console.error(`应答来电失败: ${error.message}`);
+            this.incomingCall = null;
+            throw error;
+        }
+    }
+
+    createOKResponse(callInfo) {
+        // 为To头添加tag（如果没有的话）
+        let toHeader = callInfo.toHeader;
+        if (!toHeader.includes('tag=')) {
+            toHeader += `;tag=${this.generateTag()}`;
+        }
+
+        // 获取本地IP
+        const localIP = this.localIP || this.getLocalIP();
+        const rtpPort = this.rtpPort || 5004;
+
+        // 创建正确格式的SDP
+        const sdpContent = [
+            `v=0`,
+            `o=- ${Date.now()} ${Date.now()} IN IP4 ${localIP}`,
+            `s=SIP Call`,
+            `c=IN IP4 ${localIP}`,
+            `t=0 0`,
+            `m=audio ${rtpPort} RTP/AVP 0 8`,
+            `a=rtpmap:0 PCMU/8000`,
+            `a=rtpmap:8 PCMA/8000`,
+            `a=sendrecv`,
+            ``
+        ].join('\r\n');
+
+        // 计算正确的Content-Length
+        const contentLength = Buffer.byteLength(sdpContent, 'utf8');
+
+        // 解析Via头，确保正确复制所有Via头
+        const lines = callInfo.message.split('\r\n');
+        const viaHeaders = [];
+        const recordRouteHeaders = [];
+        
+        for (const line of lines) {
+            if (line.startsWith('Via:')) {
+                viaHeaders.push(line);
+            } else if (line.startsWith('Record-Route:')) {
+                recordRouteHeaders.push(line);
+            }
+        }
+
+        // 构建200 OK响应
+        const responseLines = [
+            `SIP/2.0 200 OK`
+        ];
+
+        // 添加所有Via头（必须按原顺序）
+        viaHeaders.forEach(via => responseLines.push(via));
+
+        // 添加Record-Route头（如果存在）
+        recordRouteHeaders.forEach(rr => responseLines.push(rr));
+
+        // 添加其他必要头
+        responseLines.push(
+            callInfo.fromHeader,
+            toHeader,
+            callInfo.callIdHeader,
+            callInfo.cseq,
+            `Contact: <sip:${this.username}@${localIP}:${this.actualLocalPort}>`,
+            `Allow: INVITE, ACK, BYE, CANCEL, OPTIONS`,
+            `User-Agent: NodeJS-UDP-SIP-Client 1.0`,
+            `Content-Type: application/sdp`,
+            `Content-Length: ${contentLength}`,
+            ``,
+            sdpContent
+        );
+
+        const okResponse = responseLines.join('\r\n');
+        
+        console.log('生成的200 OK响应:');
+        console.log(okResponse);
+        
+        return okResponse;
+    }
+
+    generateTag() {
+        return Math.random().toString(36).substr(2, 9);
     }
 
     rejectIncomingCall(inviteMessage, rinfo) {
@@ -1212,6 +1434,79 @@ class UDPSIPClient {
         } catch (error) {
             console.error(`Error rejecting incoming call: ${error.message}`);
         }
+    }
+
+    hasIncomingCall() {
+        return !!this.incomingCall;
+    }
+
+    getIncomingCallInfo() {
+        if (this.incomingCall) {
+            return {
+                fromUser: this.incomingCall.fromUser,
+                timestamp: this.incomingCall.timestamp
+            };
+        }
+        return null;
+    }
+
+    handleACK(ackMessage, rinfo) {
+        try {
+            console.log(`处理ACK消息，来自: ${rinfo.address}:${rinfo.port}`);
+            
+            // ACK确认了200 OK响应，通话正式建立
+            if (this.currentCall && !this.currentCall.ackReceived) {
+                this.currentCall.ackReceived = true;
+                this.currentCall.establishedTime = Date.now();
+                console.log('通话已正式建立（收到ACK确认）');
+                
+                // 如果还没有开始RTP流，现在开始
+                if (!this.rtpSendInterval && this.remoteRtpAddress && this.remoteRtpPort) {
+                    console.log('ACK收到，开始RTP流传输');
+                    this.startRTPStream();
+                }
+            }
+        } catch (error) {
+            console.error(`处理ACK失败: ${error.message}`);
+        }
+    }
+
+    handleBYE(byeMessage, rinfo) {
+        try {
+            console.log(`处理BYE消息，来自: ${rinfo.address}:${rinfo.port}`);
+            console.log(`BYE消息内容:\n${byeMessage}`);
+            
+            // 发送200 OK响应
+            this.sendByeOK(byeMessage, rinfo);
+            
+            // 立即结束当前通话并清理所有状态
+            if (this.currentCall) {
+                console.log('远程方挂断通话，立即清理通话状态');
+                this.stopRTPStream();
+                this.currentCall = null;
+                console.log('通话状态已清理，可以接受新的来电');
+            } else {
+                console.log('收到BYE但没有活跃通话');
+            }
+            
+            // 确保清理来电状态
+            if (this.incomingCall) {
+                console.log('清理来电状态');
+                this.incomingCall = null;
+            }
+            
+        } catch (error) {
+            console.error(`处理BYE失败: ${error.message}`);
+        }
+    }
+
+    rejectCurrentIncomingCall() {
+        if (this.incomingCall) {
+            this.rejectIncomingCall(this.incomingCall.message, this.incomingCall.rinfo);
+            this.incomingCall = null;
+            return true;
+        }
+        return false;
     }
 
     isRegistered() {

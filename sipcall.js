@@ -4,6 +4,7 @@ import { Server } from '@modelcontextprotocol/sdk/server';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { UDPSIPClient } from './udp_sip.js';
+import { WebRTCSipClient } from './webrtc_sip.js';
 
 /**
  * Enhanced SIP Call MCP Server
@@ -26,9 +27,11 @@ class SipCallServer {
 
         // SIP clients
         this.udpSipClient = null;
+        this.webrtcSipClient = null;
         this.config = null;
         this.isRegistered = false;
         this.preferredProtocol = 'udp';
+        this.currentProtocol = null;
 
         // Call history and statistics
         this.callHistory = [];
@@ -52,7 +55,7 @@ class SipCallServer {
                 tools: [
                     {
                         name: 'sip_configure',
-                        description: '配置SIP客户端连接参数，支持UDP协议，自动进行SIP注册',
+                        description: '配置SIP客户端连接参数，支持UDP和WebRTC协议，自动进行SIP注册',
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -81,6 +84,12 @@ class SipCallServer {
                                     type: 'number',
                                     description: '本地端口（UDP协议）',
                                     default: 0
+                                },
+                                protocol: {
+                                    type: 'string',
+                                    description: 'SIP协议类型',
+                                    enum: ['udp', 'webrtc'],
+                                    default: 'udp'
                                 }
                             },
                             required: ['sipServer', 'username', 'password', 'domain']
@@ -136,6 +145,52 @@ class SipCallServer {
                             type: 'object',
                             properties: {}
                         }
+                    },
+                    {
+                        name: 'sip_answer_call',
+                        description: '接听来电（支持UDP和WebRTC协议）',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {}
+                        }
+                    },
+                    {
+                        name: 'sip_hangup_call',
+                        description: '挂断/拒绝电话（支持UDP和WebRTC协议）',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {}
+                        }
+                    },
+                    {
+                        name: 'webrtc_set_stream',
+                        description: '设置WebRTC本地媒体流（仅WebRTC协议）',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                streamData: {
+                                    type: 'string',
+                                    description: '媒体流数据或标识符'
+                                }
+                            },
+                            required: ['streamData']
+                        }
+                    },
+                    {
+                        name: 'webrtc_answer_call',
+                        description: '接听来电（仅WebRTC协议）',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {}
+                        }
+                    },
+                    {
+                        name: 'webrtc_hangup_call',
+                        description: '挂断电话（仅WebRTC协议）',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {}
+                        }
                     }
                 ]
             };
@@ -157,6 +212,16 @@ class SipCallServer {
                         return await this.handleStatistics();
                     case 'sip_reset':
                         return await this.handleReset();
+                    case 'sip_answer_call':
+                        return await this.handleAnswerCall(args);
+                    case 'sip_hangup_call':
+                        return await this.handleHangupCall(args);
+                    case 'webrtc_set_stream':
+                        return await this.handleWebRTCSetStream(args);
+                    case 'webrtc_answer_call':
+                        return await this.handleWebRTCAnswerCall(args);
+                    case 'webrtc_hangup_call':
+                        return await this.handleWebRTCHangupCall(args);
                     default:
                         throw new Error(`Unknown tool: ${name}`);
                 }
@@ -182,22 +247,57 @@ class SipCallServer {
                 password: args.password,
                 domain: args.domain,
                 port: args.port || 10060,
-                localPort: args.localPort || 0
+                localPort: args.localPort || 0,
+                protocol: args.protocol || 'udp'
             };
 
-            // Initialize UDP SIP client
-            this.udpSipClient = new UDPSIPClient({
-                username: this.config.username,
-                password: this.config.password,
-                server: this.config.sipServer,
-                port: this.config.port,
-                localPort: this.config.localPort
-            });
+            this.currentProtocol = this.config.protocol;
+            this.preferredProtocol = this.config.protocol;
 
-            // Wait for client to be ready
-            await this.udpSipClient.clientReady;
+            if (this.config.protocol === 'udp') {
+                // Initialize UDP SIP client
+                this.udpSipClient = new UDPSIPClient({
+                    username: this.config.username,
+                    password: this.config.password,
+                    server: this.config.sipServer,
+                    port: this.config.port,
+                    localPort: this.config.localPort
+                });
 
-            // Attempt registration
+                // Wait for client to be ready
+                await this.udpSipClient.clientReady;
+            } else if (this.config.protocol === 'webrtc') {
+                // Initialize WebRTC SIP client
+                this.webrtcSipClient = new WebRTCSipClient();
+                const result = await this.webrtcSipClient.register(this.config);
+                if (!result.success) {
+                    throw new Error(result.message);
+                }
+
+                // Mark as registered for WebRTC
+                this.isRegistered = true;
+                this.stats.registrationSuccesses++;
+
+                const webrtcResult = {
+                    success: true,
+                    protocol: 'webrtc',
+                    message: 'WebRTC SIP客户端配置成功并已注册',
+                    server: this.config.sipServer,
+                    username: this.config.username,
+                    port: this.config.port
+                };
+
+                return {
+                    content: [
+                        {
+                            type: 'text',
+                            text: JSON.stringify(webrtcResult, null, 2)
+                        }
+                    ]
+                };
+            }
+
+            // Attempt UDP registration
             this.stats.registrationAttempts++;
             const registered = await this.udpSipClient.register();
 
@@ -244,53 +344,73 @@ class SipCallServer {
 
         this.stats.totalCalls++;
 
+        let result;
+        let response;
+
         try {
-            const result = await this.udpSipClient.makeCall(callConfig.phoneNumber, callConfig.duration);
+            if (this.currentProtocol === 'udp') {
+                result = await this.udpSipClient.makeCall(callConfig.phoneNumber, callConfig.duration);
 
-            if (result) {
-                this.stats.successfulCalls++;
-                this.stats.lastCallTime = new Date();
-
-                // Add to call history
-                const callRecord = {
-                    id: Date.now(),
-                    phoneNumber: callConfig.phoneNumber,
-                    direction: 'outbound',
-                    startTime: callConfig.startTime,
-                    endTime: new Date(),
-                    duration: callConfig.duration,
-                    status: 'completed',
-                    protocol: 'udp'
-                };
-
-                this.callHistory.unshift(callRecord);
-                if (this.callHistory.length > 100) {
-                    this.callHistory = this.callHistory.slice(0, 100);
+                if (result) {
+                    response = {
+                        success: true,
+                        callId: Date.now(),
+                        phoneNumber: callConfig.phoneNumber,
+                        duration: callConfig.duration,
+                        protocol: 'udp',
+                        message: '通话完成',
+                        stats: this.udpSipClient.getStats()
+                    };
+                } else {
+                    throw new Error('UDP 通话失败');
                 }
+            } else if (this.currentProtocol === 'webrtc') {
+                result = await this.webrtcSipClient.makeCall(callConfig.phoneNumber);
 
-                this.stats.totalDuration += callConfig.duration;
-
-                const response = {
-                    success: true,
-                    callId: callRecord.id,
-                    phoneNumber: callConfig.phoneNumber,
-                    duration: callConfig.duration,
-                    protocol: 'udp',
-                    message: '通话完成',
-                    stats: this.udpSipClient.getStats()
-                };
-
-                return {
-                    content: [
-                        {
-                            type: 'text',
-                            text: JSON.stringify(response, null, 2)
-                        }
-                    ]
-                };
-            } else {
-                throw new Error('通话失败');
+                if (result.success) {
+                    response = {
+                        success: true,
+                        callId: Date.now(),
+                        phoneNumber: callConfig.phoneNumber,
+                        protocol: 'webrtc',
+                        message: result.message,
+                        status: this.webrtcSipClient.getStatus()
+                    };
+                } else {
+                    throw new Error(`WebRTC 通话失败: ${result.message}`);
+                }
             }
+
+            this.stats.successfulCalls++;
+            this.stats.lastCallTime = new Date();
+
+            // Add to call history
+            const callRecord = {
+                id: response.callId,
+                phoneNumber: callConfig.phoneNumber,
+                direction: 'outbound',
+                startTime: callConfig.startTime,
+                endTime: new Date(),
+                duration: callConfig.duration,
+                status: 'completed',
+                protocol: this.currentProtocol
+            };
+
+            this.callHistory.unshift(callRecord);
+            if (this.callHistory.length > 100) {
+                this.callHistory = this.callHistory.slice(0, 100);
+            }
+
+            this.stats.totalDuration += callConfig.duration;
+
+            return {
+                content: [
+                    {
+                        type: 'text',
+                        text: JSON.stringify(response, null, 2)
+                    }
+                ]
+            };
         } catch (error) {
             this.stats.failedCalls++;
 
@@ -304,7 +424,7 @@ class SipCallServer {
                 duration: 0,
                 status: 'failed',
                 error: error.message,
-                protocol: 'udp'
+                protocol: this.currentProtocol
             };
 
             this.callHistory.unshift(callRecord);
@@ -319,21 +439,28 @@ class SipCallServer {
             timestamp: new Date().toISOString(),
             configured: !!this.config,
             registered: this.isRegistered,
-            protocol: this.preferredProtocol,
+            protocol: this.currentProtocol || this.preferredProtocol,
             server: this.config?.sipServer || null,
             username: this.config?.username || null
         };
 
-        if (detailed && this.udpSipClient) {
+        if (detailed) {
             status.config = this.config;
             status.stats = this.stats;
-            status.udpClient = {
-                ready: true,
-                registered: this.udpSipClient.isRegistered(),
-                localIP: this.udpSipClient.localIP,
-                localPort: this.udpSipClient.actualLocalPort,
-                stats: this.udpSipClient.getStats()
-            };
+
+            if (this.currentProtocol === 'udp' && this.udpSipClient) {
+                status.udpClient = {
+                    ready: true,
+                    registered: this.udpSipClient.isRegistered(),
+                    localIP: this.udpSipClient.localIP,
+                    localPort: this.udpSipClient.actualLocalPort,
+                    hasIncomingCall: this.udpSipClient.hasIncomingCall(),
+                    incomingCallInfo: this.udpSipClient.getIncomingCallInfo(),
+                    stats: this.udpSipClient.getStats()
+                };
+            } else if (this.currentProtocol === 'webrtc' && this.webrtcSipClient) {
+                status.webrtcClient = this.webrtcSipClient.getStatus();
+            }
         }
 
         return {
@@ -348,9 +475,12 @@ class SipCallServer {
 
     async handleStatistics() {
         const stats = { ...this.stats };
+        stats.protocol = this.currentProtocol;
 
-        if (this.udpSipClient) {
+        if (this.currentProtocol === 'udp' && this.udpSipClient) {
             stats.udpClient = this.udpSipClient.getStats();
+        } else if (this.currentProtocol === 'webrtc' && this.webrtcSipClient) {
+            stats.webrtcClient = this.webrtcSipClient.getStatus();
         }
 
         // Calculate success rate
@@ -384,6 +514,11 @@ class SipCallServer {
             this.udpSipClient = null;
         }
 
+        if (this.webrtcSipClient) {
+            await this.webrtcSipClient.unregister();
+            this.webrtcSipClient = null;
+        }
+
         // Reset state
         this.config = null;
         this.isRegistered = false;
@@ -412,6 +547,220 @@ class SipCallServer {
                 }
             ]
         };
+    }
+
+    async handleAnswerCall(args) {
+        if (!this.isRegistered) {
+            throw new Error('SIP客户端未注册，无法接听电话');
+        }
+
+        try {
+            let result;
+            let response;
+
+            if (this.currentProtocol === 'udp') {
+                if (!this.udpSipClient.hasIncomingCall()) {
+                    throw new Error('没有来电需要接听');
+                }
+
+                result = await this.udpSipClient.answerCall();
+
+                if (result) {
+                    response = {
+                        success: true,
+                        message: '来电已接听',
+                        protocol: 'udp',
+                        timestamp: new Date().toISOString()
+                    };
+                } else {
+                    throw new Error('UDP 接听来电失败');
+                }
+            } else if (this.currentProtocol === 'webrtc') {
+                result = await this.webrtcSipClient.answerCall();
+
+                if (result.success) {
+                    response = {
+                        success: true,
+                        message: result.message,
+                        protocol: 'webrtc',
+                        timestamp: new Date().toISOString(),
+                        status: this.webrtcSipClient.getStatus()
+                    };
+                } else {
+                    throw new Error(`WebRTC 接听来电失败: ${result.message}`);
+                }
+            }
+
+            return {
+                content: [
+                    {
+                        type: 'text',
+                        text: JSON.stringify(response, null, 2)
+                    }
+                ]
+            };
+        } catch (error) {
+            throw new Error(`接听电话失败: ${error.message}`);
+        }
+    }
+
+    async handleHangupCall(args) {
+        if (!this.isRegistered) {
+            throw new Error('SIP客户端未注册');
+        }
+
+        try {
+            let result;
+            let response;
+
+            if (this.currentProtocol === 'udp') {
+                if (this.udpSipClient.hasIncomingCall()) {
+                    result = this.udpSipClient.rejectCurrentIncomingCall();
+                    response = {
+                        success: true,
+                        message: '来电已拒绝',
+                        protocol: 'udp',
+                        timestamp: new Date().toISOString()
+                    };
+                } else {
+                    response = {
+                        success: true,
+                        message: '没有活动通话或来电',
+                        protocol: 'udp',
+                        timestamp: new Date().toISOString()
+                    };
+                }
+            } else if (this.currentProtocol === 'webrtc') {
+                result = await this.webrtcSipClient.hangupCall();
+
+                if (result.success) {
+                    response = {
+                        success: true,
+                        message: result.message,
+                        protocol: 'webrtc',
+                        timestamp: new Date().toISOString(),
+                        status: this.webrtcSipClient.getStatus()
+                    };
+                } else {
+                    throw new Error(`WebRTC 挂断失败: ${result.message}`);
+                }
+            }
+
+            return {
+                content: [
+                    {
+                        type: 'text',
+                        text: JSON.stringify(response, null, 2)
+                    }
+                ]
+            };
+        } catch (error) {
+            throw new Error(`挂断电话失败: ${error.message}`);
+        }
+    }
+
+    async handleWebRTCSetStream(args) {
+        if (this.currentProtocol !== 'webrtc') {
+            throw new Error('当前协议不是WebRTC，无法设置媒体流');
+        }
+
+        if (!this.webrtcSipClient) {
+            throw new Error('WebRTC SIP客户端未初始化');
+        }
+
+        try {
+            // 这里需要应用层提供实际的MediaStream对象
+            console.log('媒体流标识:', args.streamData);
+
+            const result = {
+                success: true,
+                message: '媒体流标识已设置，请在应用层提供实际MediaStream对象',
+                streamData: args.streamData
+            };
+
+            return {
+                content: [
+                    {
+                        type: 'text',
+                        text: JSON.stringify(result, null, 2)
+                    }
+                ]
+            };
+        } catch (error) {
+            throw new Error(`设置媒体流失败: ${error.message}`);
+        }
+    }
+
+    async handleWebRTCAnswerCall(args) {
+        if (this.currentProtocol !== 'webrtc') {
+            throw new Error('当前协议不是WebRTC，无法接听电话');
+        }
+
+        if (!this.webrtcSipClient) {
+            throw new Error('WebRTC SIP客户端未初始化');
+        }
+
+        try {
+            const result = await this.webrtcSipClient.answerCall();
+
+            if (result.success) {
+                const response = {
+                    success: true,
+                    message: result.message,
+                    timestamp: new Date().toISOString(),
+                    status: this.webrtcSipClient.getStatus()
+                };
+
+                return {
+                    content: [
+                        {
+                            type: 'text',
+                            text: JSON.stringify(response, null, 2)
+                        }
+                    ]
+                };
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error) {
+            throw new Error(`接听电话失败: ${error.message}`);
+        }
+    }
+
+    async handleWebRTCHangupCall(args) {
+        if (this.currentProtocol !== 'webrtc') {
+            throw new Error('当前协议不是WebRTC，无法挂断电话');
+        }
+
+        if (!this.webrtcSipClient) {
+            throw new Error('WebRTC SIP客户端未初始化');
+        }
+
+        try {
+            const result = await this.webrtcSipClient.hangupCall();
+
+            if (result.success) {
+                const response = {
+                    success: true,
+                    message: result.message,
+                    timestamp: new Date().toISOString(),
+                    status: this.webrtcSipClient.getStatus()
+                };
+
+                return {
+                    content: [
+                        {
+                            type: 'text',
+                            text: JSON.stringify(response, null, 2)
+                        }
+                    ]
+                };
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error) {
+            throw new Error(`挂断电话失败: ${error.message}`);
+        }
     }
 
     async run() {

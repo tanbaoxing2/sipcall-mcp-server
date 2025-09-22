@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "mcp__sipcall-mcp-server__sip_configure",
+      "mcp__sipcall-mcp-server__sip_status",
+      "mcp__sipcall-mcp-server__sip_call"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
